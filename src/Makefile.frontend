@@ -7,8 +7,8 @@
 STRIP ?= strip
 NAME = wslbridge2.exe
 BINDIR = ../bin
-CFLAGS = -D_GNU_SOURCE -fno-exceptions -O2 -std=c++11 -Wall
-LFLAGS = 
+CFLAGS = -D_GNU_SOURCE -fno-exceptions -O2 -std=c++11 -Wall -g
+LFLAGS = -lole32
 
 ifdef RELEASE
 LFLAGS += -static -static-libgcc -static-libstdc++
@@ -20,7 +20,8 @@ $(BINDIR)/Helpers.obj \
 $(BINDIR)/LocalSock.obj \
 $(BINDIR)/TerminalState.obj \
 $(BINDIR)/WinHelper.obj \
-$(BINDIR)/wslbridge2.obj
+$(BINDIR)/wslbridge2.obj \
+$(BINDIR)/GetVmId.obj
 
 # Windows header specific options
 CCOPT = -D_WIN32_WINNT=0x0600 -DUNICODE -D_UNICODE
@@ -29,7 +30,7 @@ all : $(BINDIR) $(NAME)
 
 $(NAME) : $(OBJS)
 	$(CXX) $^ $(LFLAGS) -o $(BINDIR)/$@
-	$(STRIP) $(BINDIR)/$@
+	#$(STRIP) $(BINDIR)/$@
 
 $(BINDIR)/common.obj : common.cpp
 	$(CXX) -c $(CFLAGS) $< -o $@

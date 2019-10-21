@@ -235,20 +235,23 @@ int main(int argc, char *argv[])
 
     if (IsVmMode()) /* WSL2 */
     {
-        /* First connect to Windows side then send random port */
-        const int client_sock = ConnectHvSock(initPort);
-        const int server_sock = ListenVsockAnyPort(&randomPort, ARRAYSIZE(ioSockets.sock));
-        ret = send(client_sock, &randomPort, sizeof randomPort, 0);
-        assert(ret > 0);
-        close(client_sock);
+        // /* First connect to Windows side then send random port */
+        // const int client_sock = ConnectHvSock(initPort);
+        // const int server_sock = ListenVsockAnyPort(&randomPort, ARRAYSIZE(ioSockets.sock));
+        // ret = send(client_sock, &randomPort, sizeof randomPort, 0);
+        // assert(ret > 0);
+        // close(client_sock);
 
-        /* Now act as a server and accept I/O channels */
-        for (size_t i = 0; i < ARRAYSIZE(ioSockets.sock); i++)
-        {
-            ioSockets.sock[i] = accept4(server_sock, NULL, NULL, SOCK_CLOEXEC);
-            assert(ioSockets.sock[i] > 0);
-        }
-        close(server_sock);
+        // /* Now act as a server and accept I/O channels */
+        // for (size_t i = 0; i < ARRAYSIZE(ioSockets.sock); i++)
+        // {
+        //     ioSockets.sock[i] = accept4(server_sock, NULL, NULL, SOCK_CLOEXEC);
+        //     assert(ioSockets.sock[i] > 0);
+        // }
+        // close(server_sock);
+        ioSockets.inputSock = ConnectHvSock(inputPort);
+        ioSockets.outputSock = ConnectHvSock(outputPort);
+        ioSockets.controlSock = ConnectHvSock(controlPort);
 
         if (debugMode)
         {

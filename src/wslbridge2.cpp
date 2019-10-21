@@ -15,7 +15,6 @@
 #include <sys/cygwin.h>
 #endif
 #include <sys/ioctl.h>
-#include <sys/socket.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -35,6 +34,11 @@
 #define ARRAYSIZE(a) (sizeof(a)/sizeof((a)[0]))
 #endif
 
+HRESULT GetVmId(
+    GUID *LxInstanceID,
+    const std::wstring &DistroName,
+    int *WslVersion);
+
 /* Enable this to show debug information */
 static const char IsDebugMode = 0;
 
@@ -51,7 +55,7 @@ union IoSockets
 
 /* global variable */
 static union IoSockets g_ioSockets = { 0 };
-
+static WinsockModule *ws = WinsockModule::getInstance();
 static void* resize_window(void *set)
 {
     int ret, signum;
@@ -66,7 +70,7 @@ static void* resize_window(void *set)
 
         /* Send terminal window size to control socket */
         ioctl(STDIN_FILENO, TIOCGWINSZ, &winp);
-        send(g_ioSockets.controlSock, &winp, sizeof winp, 0);
+        ws->send(g_ioSockets.controlSock, &winp, sizeof winp, 0);
 
         if (IsDebugMode)
             printf("cols: %d row: %d\n", winp.ws_col,winp.ws_row);
@@ -91,7 +95,7 @@ static void* send_buffer(void *param)
         {
             ret = read(STDIN_FILENO, data, sizeof data);
             if (ret > 0)
-                ret = send(g_ioSockets.inputSock, data, ret, 0);
+                ret = ws->send(g_ioSockets.inputSock, data, ret, 0);
             else
                 break;
         }
@@ -108,7 +112,7 @@ static void* receive_buffer(void *param)
 
     while (1)
     {
-        ret = recv(g_ioSockets.outputSock, data, sizeof data, 0);
+        ret = ws->recv(g_ioSockets.outputSock, data, sizeof data, 0);
         if (ret > 0)
             ret = write(STDOUT_FILENO, data, ret);
         else
@@ -269,9 +273,15 @@ int main(int argc, char *argv[])
         }
     }
 
-    LocalSock inputSocket;
-    LocalSock outputSocket;
-    LocalSock controlSocket;
+
+    GUID VmId;
+    int WslVersion;
+    const HRESULT hRes = GetVmId(&VmId, mbsToWcs(distroName), &WslVersion);
+    GUID *pVmId = WslVersion == 2? &VmId : nullptr;
+
+    LocalSock inputSocket(pVmId);
+    LocalSock outputSocket(pVmId);
+    LocalSock controlSocket(pVmId);
 
     const std::wstring wslPath = findSystemProgram(L"wsl.exe");
     const auto backendPathInfo = normalizePath(
